@@ -1,0 +1,21 @@
+create extension if not exists pgcrypto;
+create table if not exists public.profiles(id uuid primary key references auth.users(id) on delete cascade,username text not null unique check(username ~ '^[A-Za-z0-9_]{3,16}$'),skin_path text,model text not null default 'classic' check(model in ('classic','slim')),created_at timestamptz not null default now());
+alter table public.profiles enable row level security;
+create policy "Signed-in RAPID users can view profiles" on public.profiles for select to authenticated using(true);
+create policy "Users update own profile" on public.profiles for update to authenticated using(auth.uid()=id) with check(auth.uid()=id);
+create or replace function public.create_rapid_profile() returns trigger language plpgsql security definer set search_path='' as $$ begin insert into public.profiles(id,username) values(new.id,coalesce(new.raw_user_meta_data->>'rapid_username','Player_'||substr(new.id::text,1,8))); return new; end; $$;
+drop trigger if exists on_rapid_user_created on auth.users;
+create trigger on_rapid_user_created after insert on auth.users for each row execute procedure public.create_rapid_profile();
+create table if not exists public.rapid_invites(id uuid primary key default gen_random_uuid(),code_hash text not null unique,used_by uuid references auth.users(id) on delete set null,used_at timestamptz,created_at timestamptz not null default now());
+alter table public.rapid_invites enable row level security;
+create or replace function public.check_rapid_invite(invite_code text) returns boolean language sql security definer set search_path='' as $$ select exists(select 1 from public.rapid_invites where code_hash=encode(extensions.digest(convert_to(invite_code,'UTF8'),'sha256'),'hex') and used_by is null); $$;
+grant execute on function public.check_rapid_invite(text) to anon,authenticated;
+create or replace function public.redeem_rapid_invite(invite_code text) returns boolean language plpgsql security definer set search_path='' as $$ declare changed integer; begin if auth.uid() is null then raise exception 'Sign in first'; end if; update public.rapid_invites set used_by=auth.uid(),used_at=now() where code_hash=encode(extensions.digest(convert_to(invite_code,'UTF8'),'sha256'),'hex') and used_by is null; get diagnostics changed=row_count; if changed=0 then raise exception 'Invite invalid or already used'; end if; return true; end; $$;
+grant execute on function public.redeem_rapid_invite(text) to authenticated;
+insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values('skins','skins',true,524288,array['image/png']) on conflict(id) do update set public=true,file_size_limit=524288,allowed_mime_types=array['image/png'];
+create policy "Skins publicly viewable" on storage.objects for select using(bucket_id='skins');
+create policy "Users upload own skin" on storage.objects for insert to authenticated with check(bucket_id='skins' and (storage.foldername(name))[1]=auth.uid()::text);
+create policy "Users update own skin" on storage.objects for update to authenticated using(bucket_id='skins' and (storage.foldername(name))[1]=auth.uid()::text) with check(bucket_id='skins' and (storage.foldername(name))[1]=auth.uid()::text);
+-- Create an invite in SQL Editor: select encode(gen_random_bytes(16),'hex') as invite_code;
+-- Insert its hash, replacing PASTE_CODE:
+-- insert into public.rapid_invites(code_hash) values(encode(extensions.digest(convert_to('PASTE_CODE','UTF8'),'sha256'),'hex'));
