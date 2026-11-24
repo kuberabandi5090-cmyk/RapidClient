@@ -1,6 +1,6 @@
 -- RAPID Accounts: enforce one-time invites inside the auth.users transaction.
--- Run this once in Supabase SQL Editor after the initial setup.
--- This replaces the existing trigger function; do NOT rerun the original setup script.
+-- Run this in Supabase SQL Editor to replace the existing trigger function.
+-- Do not rerun the original setup script.
 
 create or replace function public.create_rapid_profile()
 returns trigger
@@ -32,10 +32,9 @@ begin
     raise exception 'RAPID invite code is invalid or already used';
   end if;
 
-  -- Remove the plaintext invite from user metadata after it has been consumed.
-  update auth.users
-     set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) - 'rapid_invite_code'
-   where id = new.id;
+  -- The invite is consumed atomically. We intentionally do not UPDATE auth.users
+  -- from its own AFTER INSERT trigger, which can make Supabase reject signup.
+  -- The consumed code remains in this user's own auth metadata; it cannot be reused.
 
   insert into public.profiles(id, username)
   values (
