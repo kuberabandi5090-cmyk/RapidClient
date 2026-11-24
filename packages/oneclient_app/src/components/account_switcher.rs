@@ -3,7 +3,7 @@ use freya::{
     prelude::*,
     router::RouterContext,
 };
-use oneclient_auth::MinecraftAccount;
+use oneclient_auth::{AccountKind, MinecraftAccount};
 
 use crate::{
     Route,
@@ -86,7 +86,7 @@ impl Component for AccountPanel {
 
         rect()
             .vertical()
-            .width(Size::px(300.))
+            .width(Size::px(320.))
             .padding(Gaps::new_all(12.))
             .spacing(8.)
             .opacity(progress)
@@ -115,11 +115,22 @@ impl Component for AccountPanel {
                     .spacing(6.)
                     .child(BackToControlCenter)
                     .child(
-                        label()
-                            .text(t("oneclient.components.account_switcher.title"))
-                            .font_size(text_size(18.))
-                            .font_weight(FontWeight::MEDIUM)
-                            .a11y_role(AccessibilityRole::TitleBar),
+                        rect()
+                            .vertical()
+                            .spacing(2.)
+                            .child(
+                                label()
+                                    .text(t("oneclient.components.account_switcher.title"))
+                                    .font_size(text_size(15.))
+                                    .font_weight(FontWeight::SEMI_BOLD)
+                                    .a11y_role(AccessibilityRole::TitleBar),
+                            )
+                            .child(
+                                label()
+                                    .text(t("oneclient.components.account_switcher.subtitle"))
+                                    .font_size(text_size(11.))
+                                    .color(colors::fg_secondary()),
+                            ),
                     ),
             )
             .child(divider())
@@ -199,6 +210,10 @@ impl Component for AccountRow {
     fn render(&self) -> impl IntoElement {
         let id = self.account.id;
         let username = self.account.username.clone();
+        let profile_type = match self.account.kind {
+            AccountKind::Microsoft => t("oneclient.components.account_switcher.microsoft"),
+            AccountKind::Offline => t("oneclient.components.account_switcher.offline"),
+        };
         let active = self.active;
 
         let dispatch = use_dispatch();
@@ -237,6 +252,7 @@ impl Component for AccountRow {
                 rect()
                     .vertical()
                     .width(Size::flex(1.0))
+                    .spacing(2.)
                     .child(
                         label()
                             .text(username)
@@ -245,12 +261,18 @@ impl Component for AccountRow {
                             .max_lines(1)
                             .color(colors::fg_primary()),
                     )
+                    .child(
+                        label()
+                            .text(profile_type)
+                            .font_size(text_size(10.))
+                            .color(colors::fg_secondary()),
+                    )
                     .maybe(active, |el| {
                         el.child(
                             label()
                                 .text(t("oneclient.components.account_switcher.active"))
-                                .font_size(text_size(11.))
-                                .color(colors::fg_secondary()),
+                                .font_size(text_size(10.))
+                                .color(colors::brand()),
                         )
                     }),
             )
