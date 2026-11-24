@@ -32,6 +32,12 @@ jobs:
 
       - name: Build release executable
         shell: bash
+        env:
+          # The upstream workspace defaults to fat LTO with one codegen unit.
+          # Disable LTO for the Windows CI build so first-time builds do not
+          # spend an excessive amount of time in whole-program optimization.
+          CARGO_PROFILE_RELEASE_LTO: "false"
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
         run: cargo build --release --bin oneclient_app
 
       - name: Stage Microsoft Visual C++ runtime
