@@ -1,0 +1,71 @@
+name: RAPID CLIENT Windows Build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "packages/**"
+      - "distribution/windows/**"
+      - ".github/workflows/rapid-client-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows:
+    name: Build Windows x64 installer
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Setup Rust
+        uses: ./.github/actions/setup-rust
+        with:
+          save-cache: true
+          restore-cache: true
+          cache-namespace: rapid-client-windows-release
+
+      - name: Build release executable
+        shell: bash
+        run: cargo build --release --bin oneclient_app
+
+      - name: Stage Microsoft Visual C++ runtime
+        shell: bash
+        run: python3 distribution/windows/bundle-crt.py
+
+      - name: Install cargo-packager
+        uses: ./.github/actions/install-cargo-tool
+        with:
+          tool: cargo-packager
+          version: 0.11.8
+
+      - name: Package Windows installer
+        shell: bash
+        run: cargo packager --release --formats nsis --verbose
+
+      - name: Smoke-test installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $installer = Get-ChildItem 'target/release/*-setup.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'The NSIS installer was not produced.' }
+          $dest = 'C:\rapid-client-smoke'
+          Remove-Item -Recurse -Force $dest -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath $installer.FullName -ArgumentList '/S', "/D=$dest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "Installer exited with code $($p.ExitCode)." }
+          if (-not (Test-Path "$dest\oneclient_app.exe")) { throw 'The launcher executable is missing from the install.' }
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: rapid-client-windows
+          path: |
+            target/release/*-setup.exe
+            target/release/oneclient_app.exe
+          if-no-files-found: error
+          retention-days: 14

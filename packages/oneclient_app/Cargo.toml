@@ -1,6 +1,6 @@
 [package]
 name = "oneclient_app"
-description = "OneClient Freya App"
+description = "RAPID CLIENT desktop launcher"
 version = { workspace = true }
 license = { workspace = true }
 edition = { workspace = true }
@@ -98,14 +98,14 @@ windows = { version = "=0.62.2", features = [
 winresource = "=0.1.31"
 
 [package.metadata.packager]
-product-name = "OneClient"
-identifier = "org.polyfrost.OneClient"
+product-name = "RAPID CLIENT"
+identifier = "com.rapidclient.launcher"
 category = "Game"
-publisher = "Polyfrost Inc."
-copyright = "© 2026 Polyfrost Inc."
-homepage = "https://polyfrost.org/projects/oneclient"
-long-description = "Next-generation open source Minecraft launcher"
-formats = ["nsis", "app", "dmg", "deb", "appimage"]
+publisher = "RAPID CLIENT contributors"
+copyright = "© 2026 RAPID CLIENT contributors; based on OneClient by Polyfrost and contributors"
+homepage = "https://github.com/kuberabandi5090-cmyk/RapidClient"
+long-description = "A community Minecraft launcher fork based on OneClient, with instance, version and mod management."
+formats = ["nsis"]
 binaries = [{ path = "oneclient_app", main = true }]
 icons = [
   "icons/32x32.png",
@@ -138,7 +138,7 @@ timestamp-url = "https://timestamp.digicert.com"
 
 [package.metadata.packager.nsis]
 preinstall-section = """
-Section "-OneClientWaitForExit"
+Section "-RapidClientWaitForExit"
   ; The updater starts this installer unattended and then quits. The packager's own
   ; running-app check kills and sleeps a fixed 500 ms without confirming the exit, so
   ; give the launcher up to 10 s to close by itself first. Interactive installs skip
@@ -158,7 +158,7 @@ Section "-OneClientWaitForExit"
   ${EndIf}
 SectionEnd
 
-Section "-OneClientTauriMigration"
+Section "-RapidClientLegacyMigration"
   ; Stale Tauri root start-menu shortcut (this build only writes the sub-folder one).
   Delete "$SMPROGRAMS\\${PRODUCTNAME}.lnk"
   ; Old Tauri main binary (renamed OneClient.exe -> oneclient_app.exe). Locked while
@@ -179,7 +179,7 @@ Section "-VCRedist"
   ${EndIf}
 
   ${If} $PassiveMode != 1
-    MessageBox MB_OK|MB_ICONEXCLAMATION "This build of OneClient needs the Microsoft Visual C++ Redistributable (x64) 14.40 or newer. Install it from https://aka.ms/vs/17/release/vc_redist.x64.exe, then run this installer again."
+    MessageBox MB_OK|MB_ICONEXCLAMATION "This build of RAPID CLIENT needs the Microsoft Visual C++ Redistributable (x64) 14.40 or newer. Install it from https://aka.ms/vs/17/release/vc_redist.x64.exe, then run this installer again."
   ${EndIf}
 
   vcredist_done:

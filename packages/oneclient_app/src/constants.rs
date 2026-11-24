@@ -1,7 +1,7 @@
-pub const WINDOW_APP_ID: &str = "oneclient_app";
-pub const WINDOW_TITLE: &str = "OneClient";
+pub const WINDOW_APP_ID: &str = "rapid_client";
+pub const WINDOW_TITLE: &str = "RAPID CLIENT";
 
-pub const UPDATER_PUBKEY: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDFGODk3MkMyMjg0MjFDMDUKUldRRkhFSW93bktKSHpkWjNEMXNzaDVINVpCTU8xSnhuK2RnV0dTZ2FkcFJWbG1zUkhGYTNjaUkK";
-pub const UPDATER_ENDPOINT: &str =
-    "https://github.com/Polyfrost/OneLauncher/releases/latest/download/latest.json";
-pub const RELEASES_URL: &str = "https://github.com/Polyfrost/OneLauncher/releases/latest";
+// Automatic updates stay disabled until RAPID CLIENT has its own signed release manifest.
+pub const UPDATER_PUBKEY: &str = "";
+pub const UPDATER_ENDPOINT: &str = "";
+pub const RELEASES_URL: &str = "https://github.com/kuberabandi5090-cmyk/RapidClient/releases/latest";

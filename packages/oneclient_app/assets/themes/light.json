@@ -1,5 +1,5 @@
 {
-  "name": "PolyGlass Light",
+  "name": "Rapid Light",
   "colors": {
     "light": true,
     "page": "#D0D7F3",
@@ -9,6 +9,6 @@
     "border": "#A3A3A34D",
     "text": "#000000",
     "text_secondary": "#4E5661",
-    "accent": "#2B4BFF"
+    "accent": "#20C7EA"
   }
 }
