@@ -28,13 +28,16 @@ fn offline_uuid_matches_vanilla_algorithm() {
 }
 
 #[tokio::test]
-async fn offline_account_blocked_without_microsoft() {
+async fn offline_account_allowed_without_microsoft() {
     isolate_launcher_dir();
 
     let mut store = CredentialsStore::default();
-    let err = store.add_offline_account("Steve".into()).unwrap_err();
+    let offline = store.add_offline_account("Steve".into()).unwrap();
 
-    assert!(err.to_string().contains("Microsoft"));
+    assert_eq!(offline.kind, AccountKind::Offline);
+    assert_eq!(offline.username, "Steve");
+    assert!(offline.access_token.is_empty());
+    assert!(offline.refresh_token.is_empty());
 }
 
 #[tokio::test]
@@ -51,20 +54,16 @@ async fn offline_account_allowed_when_microsoft_exists() {
 }
 
 #[tokio::test]
-async fn default_offline_fails_when_last_microsoft_removed() {
+async fn default_offline_remains_available_without_microsoft() {
     isolate_launcher_dir();
 
     let mut store = CredentialsStore::default();
-    let msa = fake_microsoft_account("MsaUser");
-    let msa_id = msa.id;
-    store.users.insert(msa_id, msa);
-
     let offline = store.add_offline_account("Steve".into()).unwrap();
     store.default_user = Some(offline.id);
-    store.users.remove(&msa_id);
 
-    let err = store.default_account().await.unwrap_err();
-    assert!(err.to_string().contains("Microsoft"));
+    let selected = store.default_account().await.unwrap().unwrap();
+    assert_eq!(selected.id, offline.id);
+    assert!(selected.is_offline());
 }
 
 #[test]
@@ -146,4 +145,17 @@ fn offline_accounts_never_need_sign_in() {
     account.signed_out = true;
 
     assert!(!account.needs_sign_in());
+}
+
+
+#[test]
+fn offline_usernames_match_supported_format() {
+    use oneclient_auth::validate_offline_username;
+
+    assert!(validate_offline_username("Al").is_ok());
+    assert!(validate_offline_username("Rapid_User").is_ok());
+    assert!(validate_offline_username("Rapid-User").is_ok());
+    assert!(validate_offline_username("A").is_err());
+    assert!(validate_offline_username("this_username_is_too_long").is_err());
+    assert!(validate_offline_username("not valid").is_err());
 }

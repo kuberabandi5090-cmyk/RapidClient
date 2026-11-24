@@ -20,18 +20,18 @@ pub fn offline_uuid(username: &str) -> Uuid {
 
 pub fn validate_offline_username(username: &str) -> AuthResult<()> {
     let len = username.chars().count();
-    if !(3..=16).contains(&len) {
+    if !(2..=16).contains(&len) {
         return Err(AuthError::InvalidOfflineUsername {
-            reason: "username must be 3-16 characters".into(),
+            reason: "username must be 2-16 characters".into(),
         });
     }
 
     if !username
         .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
     {
         return Err(AuthError::InvalidOfflineUsername {
-            reason: "username may only contain letters, digits, and underscores".into(),
+            reason: "username may only contain letters, digits, underscores, and hyphens".into(),
         });
     }
 
