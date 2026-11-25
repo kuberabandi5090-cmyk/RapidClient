@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -40,3 +40,14 @@ jobs:
           path: rapid-skins/build/libs/rapid-skins-*.jar
           if-no-files-found: error
           retention-days: 30
+
+      - name: Publish current mod build
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rapid-skins-latest
+          name: RAPID Skins — Fabric 1.21.11
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: rapid-skins/build/libs/rapid-skins-*.jar
