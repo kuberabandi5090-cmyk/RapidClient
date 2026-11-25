@@ -16,7 +16,7 @@ public abstract class PlayerListEntryMixin {
 
     @Inject(method = "getSkinTextures", at = @At("HEAD"), cancellable = true)
     private void rapid$useAccountSkin(CallbackInfoReturnable<SkinTextures> cir) {
-        SkinTextures skin = RapidSkinManager.getSkin(getProfile().getName());
+        SkinTextures skin = RapidSkinManager.getSkin(getProfile().name());
         if (skin != null) {
             cir.setReturnValue(skin);
         }
