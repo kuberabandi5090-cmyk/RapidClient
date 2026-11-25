@@ -1,7 +1,6 @@
 package com.rapidclient.skins;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import net.minecraft.client.MinecraftClient;
@@ -36,6 +35,8 @@ public final class RapidSkinManager {
             .build();
     private static final Map<String, SkinTextures> LOADED = new ConcurrentHashMap<>();
     private static final Set<String> REQUESTED = ConcurrentHashMap.newKeySet();
+    private static final Map<String, Long> MISSES = new ConcurrentHashMap<>();
+    private static final long NEGATIVE_CACHE_NANOS = Duration.ofMinutes(2).toNanos();
 
     private RapidSkinManager() {}
 
@@ -52,10 +53,16 @@ public final class RapidSkinManager {
         if (loaded != null) {
             return loaded;
         }
+        Long missedAt = MISSES.get(name);
+        if (missedAt != null && System.nanoTime() - missedAt < NEGATIVE_CACHE_NANOS) {
+            return null;
+        }
+        if (missedAt != null) MISSES.remove(name, missedAt);
         if (REQUESTED.add(name)) {
             CompletableFuture.runAsync(() -> load(name, rawName))
                     .exceptionally(error -> {
                         REQUESTED.remove(name);
+                        MISSES.put(name, System.nanoTime());
                         System.err.println("[RAPID Skins] Lookup failed for " + rawName + ": " + error.getMessage());
                         return null;
                     });
@@ -77,6 +84,7 @@ public final class RapidSkinManager {
 
             HttpResponse<String> response = HTTP.send(lookup, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 404 || response.statusCode() == 204) {
+                MISSES.put(cacheName, System.nanoTime());
                 REQUESTED.remove(cacheName);
                 return;
             }
@@ -86,6 +94,7 @@ public final class RapidSkinManager {
 
             JsonArray rows = JsonParser.parseString(response.body()).getAsJsonArray();
             if (rows.isEmpty()) {
+                MISSES.put(cacheName, System.nanoTime());
                 REQUESTED.remove(cacheName);
                 return;
             }
@@ -119,8 +128,8 @@ public final class RapidSkinManager {
                 try {
                     NativeImageBackedTexture texture = new NativeImageBackedTexture(
                             () -> "RAPID skin for " + playerName, image);
-                    Identifier textureId = MinecraftClient.getInstance().getTextureManager()
-                            .registerDynamicTexture("rapid_skin", texture);
+                    Identifier textureId = Identifier.of("rapid_skins", "player/" + cacheName);
+                    MinecraftClient.getInstance().getTextureManager().registerTexture(textureId, texture);
                     SkinTextures textures = new SkinTextures(
                             new AssetInfo.TextureAssetInfo(textureId),
                             null,
@@ -128,6 +137,7 @@ public final class RapidSkinManager {
                             skinType,
                             false
                     );
+                    MISSES.remove(cacheName);
                     LOADED.put(cacheName, textures);
                 } catch (Exception error) {
                     image.close();
@@ -138,6 +148,7 @@ public final class RapidSkinManager {
             });
         } catch (Exception error) {
             REQUESTED.remove(cacheName);
+            MISSES.put(cacheName, System.nanoTime());
             System.err.println("[RAPID Skins] Could not load skin for " + playerName + ": " + error.getMessage());
         }
     }
