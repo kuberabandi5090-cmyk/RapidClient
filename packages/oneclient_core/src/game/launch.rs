@@ -95,6 +95,38 @@ pub async fn launch_cluster_with(
     result
 }
 
+const RAPID_SKINS_JAR_URL: &str = "https://github.com/kuberabandi5090-cmyk/RapidClient/releases/download/rapid-skins-latest/rapid-skins-0.1.0.jar";
+
+async fn ensure_rapid_skins_mod(mods_dir: &Path) {
+    let jar = mods_dir.join("rapid-skins-0.1.0.jar");
+    if jar.is_file() {
+        return;
+    }
+
+    if let Err(err) = async {
+        polyio::create_dir_all(mods_dir).await?;
+        let response = reqwest::get(RAPID_SKINS_JAR_URL)
+            .await
+            .map_err(|err| std::io::Error::other(err.to_string()))?
+            .error_for_status()
+            .map_err(|err| std::io::Error::other(err.to_string()))?;
+        let bytes = response
+            .bytes()
+            .await
+            .map_err(|err| std::io::Error::other(err.to_string()))?;
+        if bytes.is_empty() || bytes.len() > 8 * 1024 * 1024 {
+            return Err(std::io::Error::other("unexpected RAPID Skins mod size"));
+        }
+        polyio::write(&jar, bytes.as_ref()).await
+    }
+    .await
+    {
+        tracing::warn!(error = %err, "could not install the optional RAPID Skins Fabric mod");
+    } else {
+        tracing::info!(path = %jar.display(), "installed RAPID Skins Fabric mod");
+    }
+}
+
 fn jvm_args_with(profile_args: Option<&str>, extra: Option<&str>) -> String {
     match (profile_args.unwrap_or_default(), extra) {
         ("", Some(extra)) => extra.to_string(),
@@ -478,6 +510,15 @@ async fn start(
     ) {
         tracing::debug!(cluster_id, mods_dir = %mods_dir.display(), "redirecting fabric mods folder");
         jvm_args.push(arg);
+    }
+
+    if cluster.mc_loader == GameLoader::Fabric && mc_version == "1.21.11" {
+        let active_mods_dir = if mods_in_cluster {
+            mods_dir.clone()
+        } else {
+            cwd.join("mods")
+        };
+        ensure_rapid_skins_mod(&active_mods_dir).await;
     }
 
     let crash_dir = cluster.dir()?.join("crash-reports");
