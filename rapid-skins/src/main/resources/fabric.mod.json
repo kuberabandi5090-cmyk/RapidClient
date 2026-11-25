@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "rapid_skins",
+  "version": "${version}",
+  "name": "RAPID Skins",
+  "description": "Loads public RAPID Account skins for players in Minecraft.",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.rapidclient.skins.RapidSkinsClient"
+    ]
+  },
+  "mixins": [
+    {
+      "config": "rapid_skins.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "1.21.11",
+    "java": ">=21"
+  }
+}
